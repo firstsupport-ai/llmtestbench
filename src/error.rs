@@ -1,4 +1,3 @@
-
 use actix_web::{http::StatusCode, ResponseError};
 use thiserror::Error;
 
@@ -10,6 +9,9 @@ pub enum Error {
     ActixError(#[from] actix_web::Error),
     #[error("CSV Error")]
     CSVError(#[from] csv::Error),
+    
+    #[error("{0}")]
+    BadRequest(String),
 }
 
 impl ResponseError for Error {
@@ -18,11 +20,22 @@ impl ResponseError for Error {
             Error::DbError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Error::ActixError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Error::CSVError(err) => {
-                tracing::error!(%err);
+                tracing::warn!(%err);
                 StatusCode::BAD_REQUEST
-            }
+            },
+            Error::BadRequest(err) => {
+                tracing::warn!(err);
+                StatusCode::BAD_REQUEST
+            },
         }
     }
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
+
+#[macro_export]
+macro_rules! bail {
+    ($kind:ident, $($arg:tt)*) => {
+        return Err(crate::error::Error::$kind(format!($($arg)*)))
+    }
+}

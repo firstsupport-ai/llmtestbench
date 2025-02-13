@@ -1,13 +1,15 @@
-use std::sync::{Arc, Mutex};
+use std::{collections::HashMap, sync::{Arc, Mutex}, time::Duration};
 
-use actix_web::{get, post, web::{self, Buf, Data, ServiceConfig}, HttpResponse, Responder};
+use actix_multipart::form::{tempfile::TempFile, MultipartForm, json::Json as MPJson};
+use actix_web::{get, post, web::{self, Data, ServiceConfig}, HttpResponse, Responder};
+use aws_sdk_s3::presigning::PresigningConfig;
 use openai_api_rs::v1::{api::OpenAIClient, chat_completion::{ChatCompletionMessage, ChatCompletionRequest, Content, MessageRole}};
 use sea_orm::{prelude::Uuid, sqlx::types::chrono, DatabaseConnection, EntityTrait, Set};
 use serde::{Deserialize, Serialize};
 
 use entity::prelude::*;
 
-use crate::{error::Result, util};
+use crate::{bail, error::Result, util};
 
 pub(super) fn attach(app: &mut ServiceConfig) {
     app
@@ -23,14 +25,28 @@ struct AnalyzeEntry {
 }
 
 #[get("/{id}")]
-async fn get_analysis(db: Data<DatabaseConnection>, path: web::Path<(Uuid,)>) -> Result<impl Responder> {
+async fn get_analysis(db: Data<DatabaseConnection>, aws_client: Data<aws_sdk_s3::Client>, path: web::Path<(Uuid,)>) -> Result<impl Responder> {
     let session = Session::find_by_id(path.into_inner().0)
         .one(db.get_ref()).await?;
     let Some(session) = session else {
         return Ok(HttpResponse::NotFound().finish());
     };
 
-    Ok(HttpResponse::Ok().json(session))
+    let mut presigned_request = None;
+    
+    if session.finished_at.is_some() {
+        presigned_request = Some(aws_client
+            .get_object()
+            .bucket("testllm-poc")
+            .key(session.id)
+            .response_content_disposition(format!("attachment;filename=Result {}.csv", session.id))
+            .presigned(PresigningConfig::expires_in(Duration::from_secs(3600)).unwrap()).await.unwrap());
+    }
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "session": session,
+        "url": presigned_request.map(|p| p.uri().to_owned()),
+    })))
 }
 
 #[derive(Debug, Serialize)]
@@ -42,15 +58,60 @@ struct OutputAnalyzeEntry {
     model_name: String,
     actual_ai_answer: String,
     cosine_similarity: f64,
+    
+    #[serde(skip_serializing_if = "Option::is_none")]
+    judge_value: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    judge_reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Model {
+    base_url: String,
+    model_name: String,
+    api_key: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct AnalyzeParameter {
+    temperature: Option<f64>,
+    top_p: Option<f64>,
+    n: Option<i64>,
+    response_format: Option<serde_json::Value>,
+    stream: Option<bool>,
+    stop: Option<Vec<String>>,
+    max_tokens: Option<i64>,
+    presence_penalty: Option<f64>,
+    frequency_penalty: Option<f64>,
+    logit_bias: Option<HashMap<String, i32>>,
+    user: Option<String>,
+    seed: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct AnalyzeJudge {
+    model: Model,
+    prompt: String,
+}
+
+#[derive(Debug, MultipartForm)]
+struct AnalyzeRequestPayload {
+    #[multipart(limit = "50MB")]
+    data: TempFile,
+    models: MPJson<Vec<Model>>,
+    parameter: Option<MPJson<AnalyzeParameter>>,
+    judge: Option<MPJson<AnalyzeJudge>>,
 }
 
 #[post("/")]
-async fn start_analyze(db: Data<DatabaseConnection>, body: web::Payload) -> Result<impl Responder> {
-    let buffer = body.to_bytes().await?;
+async fn start_analyze(db: Data<DatabaseConnection>, aws_client: Data<aws_sdk_s3::Client>, payload: MultipartForm<AnalyzeRequestPayload>) -> Result<impl Responder> {
+    if payload.data.content_type.as_ref().map(|c| c.essence_str().to_string()).unwrap_or_default() != "text/csv" {
+        bail!(BadRequest, "`data` must be `text/csv`");
+    }
     
     let mut entries = Vec::new();
 
-    let mut reader = csv::Reader::from_reader(buffer.reader());
+    let mut reader = csv::Reader::from_reader(payload.data.file.as_file());
     for line in reader.deserialize() {
         let entry: AnalyzeEntry = line?;
         entries.push(entry);
@@ -63,18 +124,25 @@ async fn start_analyze(db: Data<DatabaseConnection>, body: web::Payload) -> Resu
     actix_web::rt::spawn(async move {
         let pool = tokio_task_pool::Pool::bounded(std::thread::available_parallelism().unwrap().get());
         
-        let models = Model::find()
-            .all(db.get_ref()).await.unwrap()
-            .into_iter().map(|model| Arc::new(model));
+        let MultipartForm(AnalyzeRequestPayload {
+            data: _,
+            models: MPJson(models),
+            parameter,
+            judge,
+        }) = payload;
+        
+        let models = models.into_iter().map(|model| Arc::new(model));
+        let parameter = Arc::new(parameter);
+        let judge = Arc::new(judge);
         
         let entries_len = entries.len();
         let completed_entries = Arc::new(Mutex::new(Vec::<OutputAnalyzeEntry>::new()));
         
         let mut tasks = Vec::new();
         
-        for model in models.clone() {
+        for model in models {
             for entry in entries.clone() {
-                let task = pool.spawn(analyze(db.clone(), session.last_insert_id, model.clone(), entry, completed_entries.clone(), entries_len)).await.unwrap();
+                let task = pool.spawn(analyze(db.clone(), session.last_insert_id, model.clone(), parameter.clone(), judge.clone(), entry, completed_entries.clone(), entries_len)).await.unwrap();
                 tasks.push(task);
             }
         }
@@ -91,7 +159,22 @@ async fn start_analyze(db: Data<DatabaseConnection>, body: web::Payload) -> Resu
             ..Default::default()
         }).exec(db.get_ref()).await.unwrap();
         
-        println!("====== Output ======\n\n{:#?}\n\n====================", completed_entries);
+        let mut buffer = Vec::new();
+
+        {
+            let mut writer = csv::Writer::from_writer(&mut buffer);
+            
+            for entry in completed_entries.iter() {
+                writer.serialize(entry).unwrap();
+            }
+        }
+        
+        aws_client
+            .put_object()
+            .bucket("testllm-poc")
+            .key(session.last_insert_id)
+            .body(buffer.into())
+            .send().await.unwrap();
     });
     
     #[derive(Debug, Serialize)]
@@ -103,35 +186,119 @@ async fn start_analyze(db: Data<DatabaseConnection>, body: web::Payload) -> Resu
 }
 
 // TODO: put error into the resulting csv
-async fn analyze(db: Data<DatabaseConnection>, session_id: Uuid, model: Arc<entity::model::Model>, entry: AnalyzeEntry, completed_entries: Arc<Mutex<Vec<OutputAnalyzeEntry>>>, entries_len: usize) {
+async fn analyze(db: Data<DatabaseConnection>, session_id: Uuid, model: Arc<Model>, parameter: Arc<Option<MPJson<AnalyzeParameter>>>, judge: Arc<Option<MPJson<AnalyzeJudge>>>, entry: AnalyzeEntry, completed_entries: Arc<Mutex<Vec<OutputAnalyzeEntry>>>, entries_len: usize) {
+    let default_env_key = model.base_url
+        .replace("https://", "")
+        .replace("http://", "")
+        .chars()
+        .filter_map(|c|
+            if c.is_ascii_alphanumeric() { Some(c) } else { None }
+        ).collect::<String>();
+
     let client = OpenAIClient::builder()
         .with_endpoint(&model.base_url)
-        .with_api_key(&model.api_key)
+        .with_api_key(model.api_key.as_ref().unwrap_or(&std::env::var(default_env_key).unwrap()))
         .build().unwrap();
     
-    let request = client.chat_completion(
-        ChatCompletionRequest::new(
-            model.model_name.clone(),
+    let mut payload = ChatCompletionRequest::new(
+        model.model_name.clone(),
+        vec![
+            ChatCompletionMessage {
+                role: MessageRole::system,
+                content: Content::Text(entry.system_prompt.clone()),
+                name: None,
+                tool_calls: None,
+                tool_call_id: None,
+            },
+            ChatCompletionMessage {
+                role: MessageRole::user,
+                content: Content::Text(entry.user_prompt.clone()),
+                name: None,
+                tool_calls: None,
+                tool_call_id: None,
+            },
+        ],
+    );
+    
+    if let Some(parameter) = parameter.as_ref() {
+        payload.temperature = parameter.temperature;
+        payload.top_p = parameter.top_p;
+        payload.n = parameter.n;
+        payload.response_format = parameter.response_format.clone();
+        payload.stream = parameter.stream;
+        payload.stop = parameter.stop.clone();
+        payload.max_tokens = parameter.max_tokens;
+        payload.presence_penalty = parameter.presence_penalty;
+        payload.frequency_penalty = parameter.frequency_penalty;
+        payload.logit_bias = parameter.logit_bias.clone();
+        payload.user = parameter.user.clone();
+        payload.seed = parameter.seed;
+    }
+    
+    let request = client.chat_completion(payload).await.unwrap();
+    let response = request.choices.first().unwrap().message.content.as_ref().unwrap();
+    
+    let mut judge_value = None;
+    let mut judge_reason = None;
+
+    if let Some(judge) = judge.as_ref() {
+        let default_env_key = judge.model.base_url
+            .replace("https://", "")
+            .replace("http://", "")
+            .chars()
+            .filter_map(|c|
+                if c.is_ascii_alphanumeric() { Some(c) } else { None }
+            ).collect::<String>();
+
+        let judge_client = OpenAIClient::builder()
+            .with_endpoint(&judge.model.base_url)
+            .with_api_key(judge.model.api_key.as_ref().unwrap_or(&std::env::var(default_env_key).unwrap()))
+            .build().unwrap();
+
+        let judge_payload = ChatCompletionRequest::new(
+            judge.model.model_name.clone(),
             vec![
                 ChatCompletionMessage {
-                    role: MessageRole::system,
-                    content: Content::Text(entry.system_prompt.clone()),
-                    name: None,
-                    tool_calls: None,
-                    tool_call_id: None,
-                },
-                ChatCompletionMessage {
                     role: MessageRole::user,
-                    content: Content::Text(entry.user_prompt.clone()),
+                    content: Content::Text(judge.prompt.clone().replace("{{expected_response}}", &entry.expected_ai_answer).replace("{{actual_response}}", response)),
                     name: None,
                     tool_calls: None,
                     tool_call_id: None,
-                },
+                }
             ],
-        )
-    ).await.unwrap();
-    
-    let response = request.choices.first().unwrap().message.content.as_ref().unwrap();
+        ).response_format(serde_json::json!({
+            "type": "json_schema",
+            "json_schema": {
+                "name": "response",
+                "strict": true,
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "description": "A score between 0 and 100 representing the similarity of the two given words. Higher values indicate greater similarity."
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "Concise explanation for the score."
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "reason"
+                  ],
+                  "additionalProperties": false
+                }
+            }
+        }));
+        
+        let judge_request = judge_client.chat_completion(judge_payload).await.unwrap();
+        let judge_response = judge_request.choices.first().unwrap().message.content.as_ref().unwrap();
+        let judge_response = serde_json::from_str::<serde_json::Value>(&judge_response).unwrap();
+        
+        judge_reason = Some(judge_response.get("reason").unwrap().as_str().unwrap().to_string());
+        judge_value = Some(judge_response.get("value").unwrap().as_f64().unwrap() / 100.0);
+    }
     
     let output = OutputAnalyzeEntry {
         cosine_similarity: util::calculate_similarity(&entry.expected_ai_answer, &response),
@@ -143,6 +310,9 @@ async fn analyze(db: Data<DatabaseConnection>, session_id: Uuid, model: Arc<enti
 
         base_url: model.base_url.clone(),
         model_name: model.model_name.clone(),
+        
+        judge_value,
+        judge_reason,
     };
     
     completed_entries.lock().unwrap().push(output);
