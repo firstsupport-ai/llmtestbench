@@ -4,14 +4,10 @@ use sea_orm::entity::prelude::*;
 use serde::Serialize;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize)]
-#[sea_orm(table_name = "model")]
+#[sea_orm(schema_name = "auth", table_name = "schema_migrations")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
-    pub created_at: DateTimeWithTimeZone,
-    pub base_url: String,
-    pub model_name: String,
-    pub api_key: String,
+    pub version: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

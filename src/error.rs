@@ -9,9 +9,13 @@ pub enum Error {
     ActixError(#[from] actix_web::Error),
     #[error("CSV Error")]
     CSVError(#[from] csv::Error),
+    #[error("Auth Error {0}")]
+    SupabaseError(#[from] supabase_auth::error::Error),
     
     #[error("{0}")]
     BadRequest(String),
+    #[error("Unauthorized")]
+    Unauthorized,
 }
 
 impl ResponseError for Error {
@@ -23,10 +27,18 @@ impl ResponseError for Error {
                 tracing::warn!(%err);
                 StatusCode::BAD_REQUEST
             },
+            Error::SupabaseError(err) => {
+                tracing::error!(%err);
+                StatusCode::INTERNAL_SERVER_ERROR
+            },
+
             Error::BadRequest(err) => {
                 tracing::warn!(err);
                 StatusCode::BAD_REQUEST
             },
+            Error::Unauthorized => {
+                StatusCode::UNAUTHORIZED
+            }
         }
     }
 }
@@ -35,7 +47,10 @@ pub type Result<T> = core::result::Result<T, Error>;
 
 #[macro_export]
 macro_rules! bail {
+    ($kind:ident) => {
+        return Err(crate::error::Error::$kind)
+    };
     ($kind:ident, $($arg:tt)*) => {
         return Err(crate::error::Error::$kind(format!($($arg)*)))
-    }
+    };
 }

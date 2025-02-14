@@ -1,13 +1,15 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}, time::Duration};
 
 use actix_multipart::form::{tempfile::TempFile, MultipartForm, json::Json as MPJson};
-use actix_web::{get, post, web::{self, Data, ServiceConfig}, HttpResponse, Responder};
+use actix_web::{get, post, web::{self, Data, ServiceConfig}, HttpRequest, HttpResponse, Responder};
 use aws_sdk_s3::presigning::PresigningConfig;
 use openai_api_rs::v1::{api::OpenAIClient, chat_completion::{ChatCompletionMessage, ChatCompletionRequest, Content, MessageRole}};
-use sea_orm::{prelude::Uuid, sqlx::types::chrono, DatabaseConnection, EntityTrait, Set};
+use resend_rs::types::{Attachment, ContentOrPath, CreateEmailBaseOptions};
+use sea_orm::{prelude::Uuid, sqlx::types::chrono, DatabaseConnection, EntityTrait, QueryFilter, Set, ColumnTrait};
 use serde::{Deserialize, Serialize};
 
-use entity::prelude::*;
+use entity::public::prelude::*;
+use entity::auth::prelude::Users;
 
 use crate::{bail, error::Result, util};
 
@@ -104,10 +106,29 @@ struct AnalyzeRequestPayload {
 }
 
 #[post("/")]
-async fn start_analyze(db: Data<DatabaseConnection>, aws_client: Data<aws_sdk_s3::Client>, payload: MultipartForm<AnalyzeRequestPayload>) -> Result<impl Responder> {
+async fn start_analyze(db: Data<DatabaseConnection>, resend_client: Data<resend_rs::Resend>, aws_client: Data<aws_sdk_s3::Client>, payload: MultipartForm<AnalyzeRequestPayload>, req: HttpRequest) -> Result<impl Responder> {
     if payload.data.content_type.as_ref().map(|c| c.essence_str().to_string()).unwrap_or_default() != "text/csv" {
         bail!(BadRequest, "`data` must be `text/csv`");
     }
+    
+    let Some(auth) = req.headers().get("Authorization") else {
+        bail!(Unauthorized);
+    };
+    
+    let Some(api_key) = ApiKey::find()
+        .filter(entity::public::api_key::Column::Key.eq(u128::from_str_radix(auth.to_str().unwrap(), 16).unwrap_or_default().to_be_bytes().to_vec()))
+        .one(db.get_ref()).await? else {
+            bail!(Unauthorized);
+        };
+    
+    let Some(user) = Users::find()
+        .filter(entity::auth::users::Column::Id.eq(api_key.user_id))
+        .one(db.get_ref()).await? else {
+            bail!(Unauthorized);
+        };
+    let Some(email) = user.email else {
+        bail!(Unauthorized);
+    };
     
     let mut entries = Vec::new();
 
@@ -117,7 +138,7 @@ async fn start_analyze(db: Data<DatabaseConnection>, aws_client: Data<aws_sdk_s3
         entries.push(entry);
     }
     
-    let session = Session::insert(entity::session::ActiveModel {
+    let session = Session::insert(entity::public::session::ActiveModel {
         ..Default::default()
     }).exec(db.get_ref()).await?;
     
@@ -153,7 +174,7 @@ async fn start_analyze(db: Data<DatabaseConnection>, aws_client: Data<aws_sdk_s3
         
         let completed_entries = completed_entries.lock().unwrap();
         
-        Session::update(entity::session::ActiveModel {
+        Session::update(entity::public::session::ActiveModel {
             id: Set(session.last_insert_id),
             finished_at: Set(Some(chrono::Utc::now().fixed_offset())),
             ..Default::default()
@@ -173,8 +194,18 @@ async fn start_analyze(db: Data<DatabaseConnection>, aws_client: Data<aws_sdk_s3
             .put_object()
             .bucket("testllm-poc")
             .key(session.last_insert_id)
-            .body(buffer.into())
+            .body(buffer.clone().into())
             .send().await.unwrap();
+        
+        let email_payload = CreateEmailBaseOptions::new("TestLLM <testllm-noreply@firstsupport.ai>", [ email ], "LLM Analysis is completed!")
+            .with_text("Hi there!\n\nYour request of LLM analysis is completed, you can download the result by the attached file!")
+            .with_attachment(Attachment {
+                filename: Some("Result.csv".to_owned()),
+                content_type: Some("text/csv".to_owned()),
+                content_or_path: ContentOrPath::Content(buffer),
+            });
+        
+        resend_client.emails.send(email_payload).await.unwrap();
     });
     
     #[derive(Debug, Serialize)]
@@ -242,17 +273,9 @@ async fn analyze(db: Data<DatabaseConnection>, session_id: Uuid, model: Arc<Mode
     let mut judge_reason = None;
 
     if let Some(judge) = judge.as_ref() {
-        let default_env_key = judge.model.base_url
-            .replace("https://", "")
-            .replace("http://", "")
-            .chars()
-            .filter_map(|c|
-                if c.is_ascii_alphanumeric() { Some(c) } else { None }
-            ).collect::<String>();
-
         let judge_client = OpenAIClient::builder()
             .with_endpoint(&judge.model.base_url)
-            .with_api_key(judge.model.api_key.as_ref().unwrap_or(&std::env::var(default_env_key).unwrap()))
+            .with_api_key(judge.model.api_key.as_ref().unwrap_or(&util::get_default_api_key(&judge.model.base_url)))
             .build().unwrap();
 
         let judge_payload = ChatCompletionRequest::new(
@@ -301,7 +324,7 @@ async fn analyze(db: Data<DatabaseConnection>, session_id: Uuid, model: Arc<Mode
     }
     
     let output = OutputAnalyzeEntry {
-        cosine_similarity: util::calculate_similarity(&entry.expected_ai_answer, &response),
+        cosine_similarity: util::calculate_similarity(&entry.expected_ai_answer, &response).await,
 
         system_prompt: entry.system_prompt,
         user_prompt: entry.user_prompt,
@@ -318,7 +341,7 @@ async fn analyze(db: Data<DatabaseConnection>, session_id: Uuid, model: Arc<Mode
     completed_entries.lock().unwrap().push(output);
     let len = completed_entries.lock().unwrap().len();
     
-    Session::update(entity::session::ActiveModel {
+    Session::update(entity::public::session::ActiveModel {
         id: Set(session_id),
         progress: Set(((len as f32 / entries_len as f32) * 100.0) as i32),
         ..Default::default()

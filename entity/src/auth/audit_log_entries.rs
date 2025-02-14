@@ -4,13 +4,14 @@ use sea_orm::entity::prelude::*;
 use serde::Serialize;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize)]
-#[sea_orm(table_name = "session")]
+#[sea_orm(schema_name = "auth", table_name = "audit_log_entries")]
 pub struct Model {
+    pub instance_id: Option<Uuid>,
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub created_at: DateTimeWithTimeZone,
-    pub finished_at: Option<DateTimeWithTimeZone>,
-    pub progress: i32,
+    pub payload: Option<Json>,
+    pub created_at: Option<DateTimeWithTimeZone>,
+    pub ip_address: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
