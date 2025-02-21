@@ -24,6 +24,7 @@ async fn main() {
 
     tracing_subscriber::fmt::init();
 
+    let port = env::var("PORT").map(|v| v.parse::<u16>()).unwrap_or(Ok(8080)).unwrap();
     let db_url = env::var("DATABASE_URL").unwrap();
     let aws_config = aws_config::load_defaults(BehaviorVersion::v2024_03_28()).await
         .to_builder()
@@ -53,6 +54,6 @@ async fn main() {
             .app_data(resend_client_data.to_owned())
             .configure(api::attach)
     })
-    .bind(("0.0.0.0", 8080)).unwrap()
+    .bind(("0.0.0.0", port)).unwrap()
     .run().await.unwrap();
 }
