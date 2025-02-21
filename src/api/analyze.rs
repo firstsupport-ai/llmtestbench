@@ -143,7 +143,10 @@ async fn start_analyze(db: Data<DatabaseConnection>, resend_client: Data<resend_
     }).exec(db.get_ref()).await?;
     
     actix_web::rt::spawn(async move {
-        let pool = tokio_task_pool::Pool::bounded(std::thread::available_parallelism().unwrap().get());
+        let parallelism = std::thread::available_parallelism().unwrap().get() * 16;
+        tracing::info!("Initializing analyzer with {parallelism} tasks");
+
+        let pool = tokio_task_pool::Pool::bounded(parallelism);
         
         let MultipartForm(AnalyzeRequestPayload {
             data: _,
