@@ -51,18 +51,18 @@ async fn get_analysis(db: Data<DatabaseConnection>, aws_client: Data<aws_sdk_s3:
     })))
 }
 
-#[derive(Debug, Serialize)]
-struct OutputAnalyzeEntry {
+#[derive(Debug, Serialize, Deserialize)]
+pub(super) struct OutputAnalyzeEntry {
     system_prompt: String,
     user_prompt: String,
     expected_ai_answer: String,
     base_url: String,
     model_name: String,
     actual_ai_answer: String,
-    cosine_similarity: f64,
+    pub(super) cosine_similarity: f64,
     
     #[serde(skip_serializing_if = "Option::is_none")]
-    judge_value: Option<f64>,
+    pub(super) judge_value: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     judge_reason: Option<String>,
 }

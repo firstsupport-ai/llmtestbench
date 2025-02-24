@@ -1,0 +1,14 @@
+{
+  "name": "nodejs-jest",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "form-data": "^4.0.2"
+  }
+}
