@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-const HOST = "http://localhost:8080";
+const HOST = "http://152.42.210.216";
 
 const MODELS = [
     {
