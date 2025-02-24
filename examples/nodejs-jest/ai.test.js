@@ -64,6 +64,8 @@ test("test input.csv", async () => {
                 res(url);
                 break;
             }
+            
+            await new Promise(res => setTimeout(res, 1000));
         }
     });
     
