@@ -2,6 +2,7 @@ use std::env;
 
 use actix_web::{App, HttpServer};
 use aws_config::{BehaviorVersion, Region};
+use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use resend_rs::Resend;
 use sea_orm::Database;
 use supabase_auth::models::AuthClient;
@@ -44,6 +45,11 @@ async fn main() {
     let aws_client_data = actix_web::web::Data::new(aws_client);
     let supabase_client_data = actix_web::web::Data::new(supabase_client);
     let resend_client_data = actix_web::web::Data::new(resend_client);
+    
+    let mut ssl_builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    ssl_builder.set_private_key_file("private.key", SslFiletype::PEM).unwrap();
+    ssl_builder.set_certificate_chain_file("certificate.crt").unwrap();
+    ssl_builder.set_ca_file("ca_bundle.crt").unwrap();
 
     HttpServer::new(move || {
         App::new()
@@ -55,5 +61,6 @@ async fn main() {
             .configure(api::attach)
     })
     .bind(("0.0.0.0", port)).unwrap()
+    .bind_openssl("0.0.0.0:443", ssl_builder).unwrap()
     .run().await.unwrap();
 }
