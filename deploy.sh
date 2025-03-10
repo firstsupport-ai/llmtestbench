@@ -9,11 +9,11 @@ fi
 
 SSH=root@$DEPLOY_HOST
 
+rsync -avz --progress ./target/release/testllm $SSH:/root/
+rsync -avz --progress ./testllm.service $SSH:/etc/systemd/system/
+
 ssh $SSH systemctl disable testllm
 ssh $SSH systemctl stop testllm
-
-scp ./target/release/testllm $SSH:/root/
-scp ./testllm.service $SSH:/etc/systemd/system/
 
 ssh $SSH systemctl daemon-reload
 ssh $SSH systemctl enable testllm
