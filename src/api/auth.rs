@@ -1,9 +1,13 @@
+use std::process::Command;
+
 use actix_web::{get, post, web::{self, Data, ServiceConfig}, HttpRequest, HttpResponse, Responder};
 use sea_orm::{Condition, DatabaseConnection, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::Deserialize;
+use serde_json::json;
 use supabase_auth::models::{AuthClient, IdTokenCredentials, Provider};
 
 use entity::public::prelude::*;
+use tracing::info;
 
 use crate::error::Result;
 
@@ -44,6 +48,8 @@ async fn process_auth(db: Data<DatabaseConnection>, payload: web::Form<AuthCallb
             nonce: None,
             gotrue_meta_security: None
         }).await?;
+
+    let whitelist_mode = std::env::var("WAITING_LIST_MODE").is_ok_and(|v| v.to_lowercase() == "on");
     
     let key = match ApiKey::find()
         .filter(
@@ -60,13 +66,42 @@ async fn process_auth(db: Data<DatabaseConnection>, payload: web::Form<AuthCallb
                     ..Default::default()
                 }).exec(db.get_ref()).await?;
                 
+                std::thread::spawn({
+                    let email = session.user.email.clone();
+
+                    move || {
+                        Command::new("curl")
+                            .args(["-X", "POST"])
+                            .args(["-H", "Content-type: application/json"])
+                            .args(["--data", &json!({ "text": format!("A new user is registered {}, their key is `{:02X?}`", email, u128::from_be_bytes(key.try_into().unwrap())) }).to_string()])
+                            .arg("https://hooks.slack.com/services/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")
+                            .spawn().unwrap();
+                    }
+                });
+                
                 key.to_vec()
             }
         };
-
-    Ok(HttpResponse::Ok()
-        .body(format!(r#"
-Your Api Key:
-{:02X?}
-        "#, u128::from_be_bytes(key.try_into().unwrap()))))
+    
+    let key = u128::from_be_bytes(key.try_into().unwrap());
+    
+    info!(info = "Generated key", email = session.user.email, key);
+    
+    if whitelist_mode {
+        Ok(HttpResponse::Ok()
+            .content_type("text/html")
+            .body(format!(r#"
+<p>Your API Key is: <bold>{:02X?}</bold><p>
+<p>Checkout this <a href="https://warped-equinox-789659.postman.co/workspace/FirstSupport~7730245e-2ff6-4e85-b6ff-401751ebd8cd/collection/29136599-3a4edf9e-f1a5-4a87-8176-c9945027e081?action=share&creator=29136599">Postman collection</a> to use the API.<p>
+<p>Contact <a href="mailto:llmtest@terrydjony.com">llmtest@terrydjony.com</a> for any support.</p>
+        "#, key).trim().to_owned()))
+    } else {
+        Ok(HttpResponse::Ok()
+            .content_type("text/html")
+            .body(r#"
+<p>Currently we restrict access to our platform due to surge of demand.<p>
+<p>Please fill in <a href="https://forms.gle/anMt3SBaLrmsjMAv7">this form</a> to get access.<p>
+<p>Contact <a href="mailto:llmtest@terrydjony.com">llmtest@terrydjony.com</a> for any support.</p>
+        "#.trim()))
+    }
 }
