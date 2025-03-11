@@ -1,15 +1,12 @@
-use std::process::Command;
-
 use actix_web::{get, post, web::{self, Data, ServiceConfig}, HttpRequest, HttpResponse, Responder};
 use sea_orm::{Condition, DatabaseConnection, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::Deserialize;
-use serde_json::json;
 use supabase_auth::models::{AuthClient, IdTokenCredentials, Provider};
 
 use entity::public::prelude::*;
 use tracing::info;
 
-use crate::error::Result;
+use crate::{error::Result, util};
 
 pub(super) fn attach(app: &mut ServiceConfig) {
     app
@@ -66,18 +63,12 @@ async fn process_auth(db: Data<DatabaseConnection>, payload: web::Form<AuthCallb
                     ..Default::default()
                 }).exec(db.get_ref()).await?;
                 
-                std::thread::spawn({
-                    let email = session.user.email.clone();
-
-                    move || {
-                        Command::new("curl")
-                            .args(["-X", "POST"])
-                            .args(["-H", "Content-type: application/json"])
-                            .args(["--data", &json!({ "text": format!("A new user is registered {}, their key is `{:02X?}`", email, u128::from_be_bytes(key.try_into().unwrap())) }).to_string()])
-                            .arg("https://hooks.slack.com/services/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")
-                            .spawn().unwrap();
-                    }
-                });
+                util::notify_slack(
+                    format!("A new user is registered {}, their key is `{:02X?}`",
+                        session.user.email.clone(),
+                        u128::from_be_bytes(key.try_into().unwrap())
+                    ),
+                );
                 
                 key.to_vec()
             }

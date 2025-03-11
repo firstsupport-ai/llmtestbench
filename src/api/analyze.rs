@@ -129,6 +129,12 @@ async fn start_analyze(db: Data<DatabaseConnection>, resend_client: Data<resend_
     let Some(email) = user.email else {
         bail!(Unauthorized);
     };
+
+    util::notify_slack(
+        format!("User {} has hit `[Start Analyze]` endpoint",
+            email,
+        ),
+    );
     
     let mut entries = Vec::new();
 
