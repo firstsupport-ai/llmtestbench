@@ -105,7 +105,7 @@ struct AnalyzeRequestPayload {
     judge: Option<MPJson<AnalyzeJudge>>,
 }
 
-#[post("/")]
+#[post("")]
 async fn start_analyze(db: Data<DatabaseConnection>, resend_client: Data<resend_rs::Resend>, aws_client: Data<aws_sdk_s3::Client>, payload: MultipartForm<AnalyzeRequestPayload>, req: HttpRequest) -> Result<impl Responder> {
     if payload.data.content_type.as_ref().map(|c| c.essence_str().to_string()).unwrap_or_default() != "text/csv" {
         bail!(BadRequest, "`data` must be `text/csv`");

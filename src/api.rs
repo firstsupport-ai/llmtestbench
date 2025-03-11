@@ -6,7 +6,8 @@ mod post_analyze;
 
 pub(super) fn attach(app: &mut ServiceConfig) {
     app
-        .configure(auth::attach)
+        .service(web::scope("/")
+            .configure(auth::attach))
         .service(web::scope("/analyze")
             .configure(analyze::attach))
         .service(web::scope("/post_analyze")

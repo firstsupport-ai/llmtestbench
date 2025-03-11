@@ -14,7 +14,7 @@ pub(super) fn attach(app: &mut ServiceConfig) {
         .service(process_auth);
 }
 
-#[get("/")]
+#[get("")]
 async fn show_auth(req: HttpRequest) -> impl Responder {
     const TEMPLATE: &str = include_str!("../../template/auth.liquid");
 
@@ -35,7 +35,7 @@ struct AuthCallback {
     credential: String,
 }
 
-#[post("/")]
+#[post("")]
 async fn process_auth(db: Data<DatabaseConnection>, payload: web::Form<AuthCallback>, supabase_client: Data<AuthClient>) -> Result<impl Responder> {
     let session = supabase_client
         .login_with_id_token(IdTokenCredentials {

@@ -19,7 +19,7 @@ struct ConditionTestRequest {
     minimum_judge: Option<f64>,
 }
 
-#[post("/")]
+#[post("")]
 async fn condition_test(db: web::Data<DatabaseConnection>, aws_client: web::Data<aws_sdk_s3::Client>, payload: web::Form<ConditionTestRequest>) -> Result<HttpResponse> {
     let session = Session::find_by_id(payload.analysis_id)
         .filter(
