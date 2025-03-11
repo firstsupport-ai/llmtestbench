@@ -87,7 +87,7 @@ async fn process_auth(db: Data<DatabaseConnection>, payload: web::Form<AuthCallb
     
     info!(info = "Generated key", email = session.user.email, key);
     
-    if whitelist_mode {
+    if !whitelist_mode {
         Ok(HttpResponse::Ok()
             .content_type("text/html")
             .body(format!(r#"
