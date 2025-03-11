@@ -46,12 +46,7 @@ async fn main() {
     let supabase_client_data = actix_web::web::Data::new(supabase_client);
     let resend_client_data = actix_web::web::Data::new(resend_client);
     
-    let mut ssl_builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-    ssl_builder.set_private_key_file("private.key", SslFiletype::PEM).unwrap();
-    ssl_builder.set_certificate_chain_file("certificate.crt").unwrap();
-    ssl_builder.set_ca_file("ca_bundle.crt").unwrap();
-
-    HttpServer::new(move || {
+    let mut http_server= HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
             .wrap(NormalizePath::trim())
@@ -60,8 +55,17 @@ async fn main() {
             .app_data(supabase_client_data.to_owned())
             .app_data(resend_client_data.to_owned())
             .configure(api::attach)
-    })
-    .bind(("0.0.0.0", port)).unwrap()
-    .bind_openssl("0.0.0.0:443", ssl_builder).unwrap()
-    .run().await.unwrap();
+    }).bind(("0.0.0.0", port)).unwrap();
+    
+    if std::fs::exists("private.key").unwrap() && std::fs::exists("certificate.crt").unwrap() && std::fs::exists("ca_bundle.crt").unwrap() {
+        let mut ssl_builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+
+        ssl_builder.set_private_key_file("private.key", SslFiletype::PEM).unwrap();
+        ssl_builder.set_certificate_chain_file("certificate.crt").unwrap();
+        ssl_builder.set_ca_file("ca_bundle.crt").unwrap();
+        
+        http_server = http_server.bind_openssl("0.0.0.0:443", ssl_builder).unwrap();
+    }
+    
+    http_server.run().await.unwrap();
 }

@@ -1,7 +1,4 @@
-use std::process::Command;
-
 use openai_api_rs::v1::{api::OpenAIClient, embedding::EmbeddingRequest};
-use serde_json::json;
 
 pub async fn calculate_similarity(text1: &str, text2: &str) -> f64 {
     // Assuming get_embedding returns Vec<f64>
@@ -65,15 +62,20 @@ pub fn get_default_api_key(base_url: &str) -> String {
 pub fn notify_slack(message: impl AsRef<str>) {
     let message = message.as_ref().to_owned();
 
+    #[cfg(not(debug_assertions))]
     std::thread::spawn({
         move || {
+            use std::process::Command;
+
             Command::new("curl")
                 .args(["-X", "POST"])
                 .args(["-H", "Content-type: application/json"])
-                .args(["--data", &json!({ "text": message }).to_string()])
+                .args(["--data", &serde_json::json!({ "text": message }).to_string()])
                 .arg("https://hooks.slack.com/services/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")
                 .spawn().unwrap();
         }
     });
-}
 
+    #[cfg(debug_assertions)]
+    tracing::info!(info = "Slack Notification", message);
+}

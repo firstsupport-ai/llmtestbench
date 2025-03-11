@@ -5,7 +5,7 @@ use actix_web::{get, post, web::{self, Data, ServiceConfig}, HttpRequest, HttpRe
 use aws_sdk_s3::presigning::PresigningConfig;
 use openai_api_rs::v1::{api::OpenAIClient, chat_completion::{ChatCompletionMessage, ChatCompletionRequest, Content, MessageRole}};
 use resend_rs::types::{Attachment, ContentOrPath, CreateEmailBaseOptions};
-use sea_orm::{prelude::Uuid, sqlx::types::chrono, DatabaseConnection, EntityTrait, QueryFilter, Set, ColumnTrait};
+use sea_orm::{prelude::Uuid, sqlx::types::chrono, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set};
 use serde::{Deserialize, Serialize};
 
 use entity::public::prelude::*;
@@ -136,15 +136,77 @@ async fn start_analyze(db: Data<DatabaseConnection>, resend_client: Data<resend_
         ),
     );
     
+    let remaining_quota = if let Some(active_plan_id) = api_key.active_plan_id {
+        let plan = Plan::find_by_id(active_plan_id).one(db.get_ref()).await?.unwrap();
+        
+        if api_key.active_plan_to.unwrap() < chrono::Local::now() {
+            bail!(BadRequest, "Your plan has expired, please resubscribe!\n{}", plan.purchase_url);
+        }
+
+        let used_quota = Session::find()
+            .filter(entity::public::session::Column::ApiKeyId.eq(api_key.id))
+            .filter(entity::public::session::Column::FinishedAt.gte(api_key.active_plan_from))
+            .filter(entity::public::session::Column::FinishedAt.lte(api_key.active_plan_to))
+            .all(db.get_ref()).await?
+            .iter()
+            .map(|row| row.record_count)
+            .reduce(|a, b| a + b).unwrap_or(0);
+        
+        let remaining_quota = plan.quota - used_quota;
+        
+        if remaining_quota <= 0 {
+            let larger_plan = Plan::find()
+                .filter(entity::public::plan::Column::Quota.gt(plan.quota))
+                .order_by_asc(entity::public::plan::Column::Quota)
+                .all(db.get_ref()).await?.first().cloned();
+            
+            if let Some(larger_plan) = larger_plan {
+                bail!(BadRequest, "You have run out of quota, please purchase a larger plan: {}?checkout[custom][id]={}\nor contact billing-llmtestbench@terrydjony.com for a custom plan.", larger_plan.purchase_url, api_key.id);
+            } else {
+                bail!(BadRequest, "You have run out of quota, please contact billing-llmtestbench@terrydjony.com for a custom plan.");
+            }
+        }
+        
+        remaining_quota
+    } else {
+        let used_quota = Session::find()
+            .filter(entity::public::session::Column::ApiKeyId.eq(api_key.id))
+            .all(db.get_ref()).await?
+            .iter()
+            .map(|row| row.record_count)
+            .reduce(|a, b| a + b).unwrap_or(0);
+
+        let remaining_quota = used_quota - std::env::var("TRIAL_QUOTA").unwrap_or("0".to_string()).parse::<i32>().unwrap();
+        
+        if remaining_quota <= 0 {
+            let base_plan = Plan::find()
+                .order_by_asc(entity::public::plan::Column::Quota)
+                .all(db.get_ref()).await?.first().unwrap().to_owned();
+            
+            bail!(BadRequest, "Your free trial quota has run out, please purchase a plan!\n{}?checkout[custom][id]={}", base_plan.purchase_url, api_key.id);
+        }
+        
+        remaining_quota
+    };
+    
     let mut entries = Vec::new();
 
     let mut reader = csv::Reader::from_reader(payload.data.file.as_file());
+    let mut record_count = 0;
     for line in reader.deserialize() {
+        if record_count >= remaining_quota {
+            break;
+        }
+
         let entry: AnalyzeEntry = line?;
         entries.push(entry);
+
+        record_count += 1;
     }
     
     let session = Session::insert(entity::public::session::ActiveModel {
+        record_count: Set(record_count),
+        api_key_id: Set(api_key.id),
         ..Default::default()
     }).exec(db.get_ref()).await?;
     

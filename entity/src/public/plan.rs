@@ -4,26 +4,20 @@ use sea_orm::entity::prelude::*;
 use serde::Serialize;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize)]
-#[sea_orm(schema_name = "public", table_name = "session")]
+#[sea_orm(schema_name = "public", table_name = "plan")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub created_at: DateTimeWithTimeZone,
-    pub finished_at: Option<DateTimeWithTimeZone>,
-    pub progress: i32,
-    pub record_count: i32,
-    pub api_key_id: Uuid,
+    pub name: String,
+    pub product_id: String,
+    pub purchase_url: String,
+    pub quota: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::api_key::Entity",
-        from = "Column::ApiKeyId",
-        to = "super::api_key::Column::Id",
-        on_update = "Cascade",
-        on_delete = "Cascade"
-    )]
+    #[sea_orm(has_many = "super::api_key::Entity")]
     ApiKey,
 }
 
