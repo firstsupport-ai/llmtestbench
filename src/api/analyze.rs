@@ -101,7 +101,7 @@ struct AnalyzeRequestPayload {
     #[multipart(limit = "50MB")]
     data: TempFile,
     models: MPJson<Vec<Model>>,
-    parameter: Option<MPJson<AnalyzeParameter>>,
+    parameters: Option<MPJson<AnalyzeParameter>>,
     judge: Option<MPJson<AnalyzeJudge>>,
 }
 
@@ -157,12 +157,12 @@ async fn start_analyze(db: Data<DatabaseConnection>, resend_client: Data<resend_
         let MultipartForm(AnalyzeRequestPayload {
             data: _,
             models: MPJson(models),
-            parameter,
+            parameters,
             judge,
         }) = payload;
         
         let models = models.into_iter().map(|model| Arc::new(model));
-        let parameter = Arc::new(parameter);
+        let parameter = Arc::new(parameters);
         let judge = Arc::new(judge);
         
         let entries_len = entries.len();
