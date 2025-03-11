@@ -1,6 +1,6 @@
 use std::env;
 
-use actix_web::{App, HttpServer};
+use actix_web::{middleware::NormalizePath, App, HttpServer};
 use aws_config::{BehaviorVersion, Region};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use resend_rs::Resend;
@@ -54,6 +54,7 @@ async fn main() {
     HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
+            .wrap(NormalizePath::trim())
             .app_data(db_data.to_owned())
             .app_data(aws_client_data.to_owned())
             .app_data(supabase_client_data.to_owned())
