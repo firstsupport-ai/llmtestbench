@@ -1,21 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Continue with Google</title>
+    <title>LLMTestBench - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f7f9fc;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .login-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            padding: 40px;
+            text-align: center;
+            
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .logo {
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            color: #333;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .logo span {
+            color: #4285F4;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+        
+        .login-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            color: #757575;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            padding: 1px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            height: 40px;
+            width: 100%;
+            position: relative;
+            transition: background-color 0.3s;
+        }
+        
+        .login-button:hover {
+            background-color: #f8f8f8;
+        }
+        
+        .login-button img {
+            position: absolute;
+            left: 10px;
+            width: 18px;
+            height: 18px;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .footer a {
+            color: #4285F4;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
-
 <body>
     <div id="g_id_onload" data-client_id="729763108233-rvrt30645226el03l7a1q902q2q2ekm5.apps.googleusercontent.com"
         data-context="signin" data-ux_mode="popup" data-login_uri="{{ login_uri }}" data-auto_prompt="false">
     </div>
-
-    <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
-        data-text="continue_with" data-size="large" data-logo_alignment="left">
+    <div class="login-container">
+        <div class="logo">
+            <h1>LLM<span>TestBench</span></h1>
+        </div>
+        <p class="subtitle">Sign in to use LLMTestBench</p>
+        
+        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
+            data-text="continue_with" data-size="large" data-logo_alignment="left">
+        </div>
+        
+        <div class="footer">
+            <p>By signing in, you agree to our <a href="https://llmtestbench.com/terms-of-service">Terms of Service</a> and <a href="https://llmtestbench.com/privacy-policy">Privacy Policy</a></p>
+        </div>
     </div>
+
     <script src="https://accounts.google.com/gsi/client" async></script>
 </body>
-
 </html>
