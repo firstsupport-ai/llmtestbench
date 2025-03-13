@@ -2,3 +2,5 @@
 
 .env*
 !.env.example
+
+/openapi_collection.json

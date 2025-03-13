@@ -83,7 +83,7 @@ async fn process_auth(db: Data<DatabaseConnection>, payload: web::Form<AuthCallb
             .content_type("text/html")
             .body(format!(r#"
 <p>Your API Key is: <bold>{:02X?}</bold><p>
-<p>Checkout this <a href="https://warped-equinox-789659.postman.co/workspace/FirstSupport~7730245e-2ff6-4e85-b6ff-401751ebd8cd/collection/29136599-3a4edf9e-f1a5-4a87-8176-c9945027e081?action=share&creator=29136599">Postman collection</a> to use the API.<p>
+<p>Checkout this <a href="https://app.llmtestbench.com/playground">Swagger playground</a> to use the API.<p>
 <p>Contact <a href="mailto:llmtest@terrydjony.com">llmtest@terrydjony.com</a> for any support.</p>
         "#, key).trim().to_owned()))
     } else {

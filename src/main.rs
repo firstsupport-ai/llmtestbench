@@ -1,6 +1,6 @@
 use std::env;
 
-use actix_web::{middleware::NormalizePath, App, HttpServer};
+use actix_web::{middleware::{NormalizePath, TrailingSlash}, web, App, HttpServer};
 use aws_config::{BehaviorVersion, Region};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use resend_rs::Resend;
@@ -12,6 +12,8 @@ use tracing_actix_web::TracingLogger;
 use migration::MigratorTrait as _;
 
 mod api;
+mod swagger;
+
 mod error;
 mod util;
 
@@ -49,12 +51,14 @@ async fn main() {
     let mut http_server= HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
-            .wrap(NormalizePath::trim())
+            .wrap(NormalizePath::new(TrailingSlash::Trim))
             .app_data(db_data.to_owned())
             .app_data(aws_client_data.to_owned())
             .app_data(supabase_client_data.to_owned())
             .app_data(resend_client_data.to_owned())
             .configure(api::attach)
+            .service(web::scope("/playground")
+                .configure(swagger::attach))
     }).bind(("0.0.0.0", port)).unwrap();
     
     if std::fs::exists("private.key").unwrap() && std::fs::exists("certificate.crt").unwrap() && std::fs::exists("ca_bundle.crt").unwrap() {

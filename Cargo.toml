@@ -57,3 +57,6 @@ aws-config = "1.5.16"
 aws-sdk-s3 = "1.74.0"
 liquid = "0.26.11"
 supabase-auth = { git = "https://github.com/MrAdhit/supabase-auth-rs", rev = "8150d464ba33f2c32998f1b6e4581df6663e085a" }
+
+[build-dependencies]
+postman2openapi = "1.2.1"

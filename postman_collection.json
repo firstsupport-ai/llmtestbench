@@ -1,0 +1,791 @@
+{
+	"info": {
+		"_postman_id": "3a4edf9e-f1a5-4a87-8176-c9945027e081",
+		"name": "TestLLM",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29136599",
+		"_collection_link": "https://warped-equinox-789659.postman.co/workspace/FirstSupport~7730245e-2ff6-4e85-b6ff-401751ebd8cd/collection/29136599-3a4edf9e-f1a5-4a87-8176-c9945027e081?action=share&source=collection_link&creator=29136599"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Auth",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{HOST}}/",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Post Analyze",
+			"item": [
+				{
+					"name": "Post Analyze",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "analysis_id",
+									"value": "f49290f0-099d-4985-ac23-d23e0bef70a1",
+									"type": "text"
+								},
+								{
+									"key": "minimum_similarity",
+									"value": "0.51",
+									"description": "Optional",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "minimum_judge",
+									"value": "0.5",
+									"description": "Optional",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{HOST}}/post_analyze/",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"post_analyze",
+								""
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Example Response (Success)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "analysis_id",
+											"value": "f49290f0-099d-4985-ac23-d23e0bef70a1",
+											"type": "text"
+										},
+										{
+											"key": "minimum_similarity",
+											"value": "0.51",
+											"description": "Optional",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "minimum_judge",
+											"value": "0.5",
+											"description": "Optional",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "{{HOST}}/post_analyze/",
+									"host": [
+										"{{HOST}}"
+									],
+									"path": [
+										"post_analyze",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "content-length",
+									"value": "16"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json"
+								},
+								{
+									"key": "date",
+									"value": "Mon, 24 Feb 2025 07:43:45 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true\n}"
+						},
+						{
+							"name": "Example Response (Cosine Failure)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "analysis_id",
+											"value": "f49290f0-099d-4985-ac23-d23e0bef70a1",
+											"type": "text"
+										},
+										{
+											"key": "minimum_similarity",
+											"value": "0.51",
+											"description": "Optional",
+											"type": "text"
+										},
+										{
+											"key": "minimum_judge",
+											"value": "0.5",
+											"description": "Optional",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "{{HOST}}/post_analyze/",
+									"host": [
+										"{{HOST}}"
+									],
+									"path": [
+										"post_analyze",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "content-length",
+									"value": "79"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json"
+								},
+								{
+									"key": "date",
+									"value": "Mon, 24 Feb 2025 07:43:58 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Cosine similarity is lower than expected at row 2\",\n    \"success\": false\n}"
+						},
+						{
+							"name": "Example Response (Judge Failure)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "analysis_id",
+											"value": "f49290f0-099d-4985-ac23-d23e0bef70a1",
+											"type": "text"
+										},
+										{
+											"key": "minimum_similarity",
+											"value": "0.51",
+											"description": "Optional",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "minimum_judge",
+											"value": "0.5",
+											"description": "Optional",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{HOST}}/post_analyze/",
+									"host": [
+										"{{HOST}}"
+									],
+									"path": [
+										"post_analyze",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "content-length",
+									"value": "75"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json"
+								},
+								{
+									"key": "date",
+									"value": "Mon, 24 Feb 2025 07:44:14 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Judge value is lower than expected at row 484\",\n    \"success\": false\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Start Analyze",
+			"request": {
+				"auth": {
+					"type": "apikey",
+					"apikey": [
+						{
+							"key": "value",
+							"value": "{{API_KEY}}",
+							"type": "string"
+						},
+						{
+							"key": "key",
+							"value": "Authorization",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "data",
+							"contentType": "text/csv",
+							"description": "https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/input.csv",
+							"type": "file",
+							"src": "postman-cloud:///1efe9bbf-ec98-42f0-85b9-82aced8d6767"
+						},
+						{
+							"key": "models",
+							"contentType": "application/json",
+							"description": "https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/models.json",
+							"type": "file",
+							"src": "postman-cloud:///1efe9bc3-c311-4db0-82f4-0a6bac7a0b02"
+						},
+						{
+							"key": "parameters",
+							"contentType": "application/json",
+							"description": "Optional | https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/parameter.json",
+							"type": "file",
+							"src": "postman-cloud:///1efe9bd0-68bc-4a10-bf64-2c01c7e3da7e"
+						},
+						{
+							"key": "judge",
+							"contentType": "application/json",
+							"description": "Optional | https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/judge.json",
+							"type": "file",
+							"src": "postman-cloud:///1efe9dbe-e6ae-4ff0-8b7b-45de7db81e53"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{HOST}}/analyze/",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"analyze",
+						""
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Example Response",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "data",
+									"contentType": "text/csv",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bbf-ec98-42f0-85b9-82aced8d6767"
+								},
+								{
+									"key": "models",
+									"contentType": "application/json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bc3-c311-4db0-82f4-0a6bac7a0b02"
+								},
+								{
+									"key": "parameter",
+									"contentType": "application/json",
+									"description": "Optional",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bd0-68bc-4a10-bf64-2c01c7e3da7e"
+								},
+								{
+									"key": "judge",
+									"type": "file",
+									"src": "postman-cloud:///1efe9dbe-e6ae-4ff0-8b7b-45de7db81e53"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8080/analyze/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"analyze",
+								""
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "content-length",
+							"value": "45"
+						},
+						{
+							"key": "content-type",
+							"value": "application/json"
+						},
+						{
+							"key": "date",
+							"value": "Thu, 13 Feb 2025 07:54:56 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"id\": \"7aef46d8-29f4-46ea-9e87-64252e372091\"\n}"
+				},
+				{
+					"name": "Example Response (Plan Expired)",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "data",
+									"contentType": "text/csv",
+									"description": "https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/input.csv",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bbf-ec98-42f0-85b9-82aced8d6767"
+								},
+								{
+									"key": "models",
+									"contentType": "application/json",
+									"description": "https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/models.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bc3-c311-4db0-82f4-0a6bac7a0b02"
+								},
+								{
+									"key": "parameters",
+									"contentType": "application/json",
+									"description": "Optional | https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/parameter.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bd0-68bc-4a10-bf64-2c01c7e3da7e"
+								},
+								{
+									"key": "judge",
+									"contentType": "application/json",
+									"description": "Optional | https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/judge.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9dbe-e6ae-4ff0-8b7b-45de7db81e53"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{HOST}}/analyze/",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"analyze",
+								""
+							]
+						}
+					},
+					"status": "Bad Request",
+					"code": 400,
+					"_postman_previewlanguage": "plain",
+					"header": [
+						{
+							"key": "content-length",
+							"value": "119"
+						},
+						{
+							"key": "content-type",
+							"value": "text/plain; charset=utf-8"
+						},
+						{
+							"key": "date",
+							"value": "Tue, 11 Mar 2025 08:46:29 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "Your plan has expired, please resubscribe!\nhttps://terrydjony.lemonsqueezy.com/buy/86f66fca-3804-4e0c-888c-dbac52b2025d"
+				},
+				{
+					"name": "Example Response (No Trial Quota)",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "data",
+									"contentType": "text/csv",
+									"description": "https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/input.csv",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bbf-ec98-42f0-85b9-82aced8d6767"
+								},
+								{
+									"key": "models",
+									"contentType": "application/json",
+									"description": "https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/models.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bc3-c311-4db0-82f4-0a6bac7a0b02"
+								},
+								{
+									"key": "parameters",
+									"contentType": "application/json",
+									"description": "Optional | https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/parameter.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bd0-68bc-4a10-bf64-2c01c7e3da7e"
+								},
+								{
+									"key": "judge",
+									"contentType": "application/json",
+									"description": "Optional | https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/judge.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9dbe-e6ae-4ff0-8b7b-45de7db81e53"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{HOST}}/analyze/",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"analyze",
+								""
+							]
+						}
+					},
+					"status": "Bad Request",
+					"code": 400,
+					"_postman_previewlanguage": "plain",
+					"header": [
+						{
+							"key": "content-length",
+							"value": "135"
+						},
+						{
+							"key": "content-type",
+							"value": "text/plain; charset=utf-8"
+						},
+						{
+							"key": "date",
+							"value": "Tue, 11 Mar 2025 08:47:09 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "Your free trial quota has run out, please purchase a plan!\nhttps://terrydjony.lemonsqueezy.com/buy/86f66fca-3804-4e0c-888c-dbac52b2025d"
+				},
+				{
+					"name": "Example Response (No More Quota With Larger Plan)",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "data",
+									"contentType": "text/csv",
+									"description": "https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/input.csv",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bbf-ec98-42f0-85b9-82aced8d6767"
+								},
+								{
+									"key": "models",
+									"contentType": "application/json",
+									"description": "https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/models.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bc3-c311-4db0-82f4-0a6bac7a0b02"
+								},
+								{
+									"key": "parameters",
+									"contentType": "application/json",
+									"description": "Optional | https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/parameter.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bd0-68bc-4a10-bf64-2c01c7e3da7e"
+								},
+								{
+									"key": "judge",
+									"contentType": "application/json",
+									"description": "Optional | https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/judge.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9dbe-e6ae-4ff0-8b7b-45de7db81e53"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{HOST}}/analyze/",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"analyze",
+								""
+							]
+						}
+					},
+					"status": "Bad Request",
+					"code": 400,
+					"_postman_previewlanguage": "plain",
+					"header": [
+						{
+							"key": "content-length",
+							"value": "200"
+						},
+						{
+							"key": "content-type",
+							"value": "text/plain; charset=utf-8"
+						},
+						{
+							"key": "date",
+							"value": "Tue, 11 Mar 2025 08:48:06 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "You have run out of quota, please purchase a larger plan: https://terrydjony.lemonsqueezy.com/buy/1707a8a2-36c8-4322-ad0d-1193a72b2cd8\nor contact billing-llmtestbench@terrydjony.com for a custom plan."
+				},
+				{
+					"name": "Example Response (No More Quota)",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "data",
+									"contentType": "text/csv",
+									"description": "https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/input.csv",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bbf-ec98-42f0-85b9-82aced8d6767"
+								},
+								{
+									"key": "models",
+									"contentType": "application/json",
+									"description": "https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/models.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bc3-c311-4db0-82f4-0a6bac7a0b02"
+								},
+								{
+									"key": "parameters",
+									"contentType": "application/json",
+									"description": "Optional | https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/parameter.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bd0-68bc-4a10-bf64-2c01c7e3da7e"
+								},
+								{
+									"key": "judge",
+									"contentType": "application/json",
+									"description": "Optional | https://testllm-poc.s3.ap-southeast-1.amazonaws.com/examples/judge.json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9dbe-e6ae-4ff0-8b7b-45de7db81e53"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{HOST}}/analyze/",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"analyze",
+								""
+							]
+						}
+					},
+					"status": "Bad Request",
+					"code": 400,
+					"_postman_previewlanguage": "plain",
+					"header": [
+						{
+							"key": "content-length",
+							"value": "96"
+						},
+						{
+							"key": "content-type",
+							"value": "text/plain; charset=utf-8"
+						},
+						{
+							"key": "date",
+							"value": "Tue, 11 Mar 2025 08:48:56 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "You have run out of quota, please contact billing-llmtestbench@terrydjony.com for a custom plan."
+				}
+			]
+		},
+		{
+			"name": "Get Analysis",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{HOST}}/analyze/:id",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"analyze",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "f49290f0-099d-4985-ac23-d23e0bef70a1"
+						}
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Example Response",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "data",
+									"contentType": "text/csv",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bbf-ec98-42f0-85b9-82aced8d6767"
+								},
+								{
+									"key": "models",
+									"contentType": "application/json",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bc3-c311-4db0-82f4-0a6bac7a0b02"
+								},
+								{
+									"key": "parameter",
+									"contentType": "application/json",
+									"description": "Optional",
+									"type": "file",
+									"src": "postman-cloud:///1efe9bd0-68bc-4a10-bf64-2c01c7e3da7e"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8080/analyze/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"analyze",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "7aef46d8-29f4-46ea-9e87-64252e372091"
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "content-length",
+							"value": "646"
+						},
+						{
+							"key": "content-type",
+							"value": "application/json"
+						},
+						{
+							"key": "date",
+							"value": "Thu, 13 Feb 2025 07:58:06 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"session\": {\n        \"created_at\": \"2025-02-13T07:54:56.973158Z\",\n        \"finished_at\": \"2025-02-13T07:55:00.204849Z\",\n        \"id\": \"7aef46d8-29f4-46ea-9e87-64252e372091\",\n        \"progress\": 100\n    },\n    \"url\": \"https://testllm-poc.s3.ap-southeast-1.amazonaws.com/7aef46d8-29f4-46ea-9e87-64252e372091?x-id=GetObject&response-content-disposition=attachment%3Bfilename%3DResult%207aef46d8-29f4-46ea-9e87-64252e372091.csv&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIARK5V2CH6QDAQJIQY%2F20250213%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20250213T075806Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=65668f99773d3a108a7d6b07945a7083d6b7e9e64ee10fa4c1929e88a898d383\"\n}"
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "HOST",
+			"value": "https://app.llmtestbench.com",
+			"type": "string"
+		}
+	]
+}
