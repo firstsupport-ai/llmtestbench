@@ -1,4 +1,4 @@
-const HOST = "http://152.42.210.216";
+const HOST = "http://" + Deno.env.get("DEPLOY_HOST");
 
 const MODELS = [
     {
@@ -19,7 +19,7 @@ const PARAMETER = {
     "seed": 99827122,
 };
 const AUTHORIZATION = {
-    "Authorization": "9C2BE045A7E687E38ADCEBF286F1345F"
+    "Authorization": Deno.env.get("API_AUTHORIZATION")!,
 };
 
 Deno.test({

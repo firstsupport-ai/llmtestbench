@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-const HOST = "http://152.42.210.216";
+const HOST = "http://" + process.env["DEPLOY_HOST"];
 
 const MODELS = [
     {
@@ -21,7 +21,7 @@ const PARAMETER = {
     "seed": 99827122,
 };
 const AUTHORIZATION = {
-    "Authorization": "9C2BE045A7E687E38ADCEBF286F1345F"
+    "Authorization": process.env["API_AUTHORIZATION"],
 };
 
 test("test input.csv", async () => {

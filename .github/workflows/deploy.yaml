@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+    
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh/
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+        echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+        sudo chmod 600 ~/.ssh/id_*
+      shell: bash
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+    - name: Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Deploy
+      run: |
+        chmod +x ./deploy.sh
+        ./deploy.sh
+      shell: bash
+      env:
+        DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}

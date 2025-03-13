@@ -16,6 +16,9 @@ jobs:
         deno-version: v2.0.3
     - run: deno test -A
       working-directory: ./examples/deno
+      env:
+        API_AUTHORIZATION: ${{ secrets.API_AUTHORIZATION }}
+        DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
 
   node-jest:
     runs-on: ubuntu-latest
@@ -29,3 +32,6 @@ jobs:
       working-directory: ./examples/nodejs-jest
     - run: npm test
       working-directory: ./examples/nodejs-jest
+      env:
+        API_AUTHORIZATION: ${{ secrets.API_AUTHORIZATION }}
+        DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
