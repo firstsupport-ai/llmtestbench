@@ -26,3 +26,7 @@ Env key is
 ```
 apideepseekcom=<YOUR_DEEPSEEK_API_KEY_HERE>
 ```
+
+# How to Use
+
+Please check the Postman Collection or Swagger
