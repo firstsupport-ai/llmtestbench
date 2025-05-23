@@ -1,7 +1,6 @@
 use openai_api_rs::v1::{api::OpenAIClient, embedding::EmbeddingRequest};
 
 pub async fn calculate_similarity(text1: &str, text2: &str) -> f64 {
-    // Assuming get_embedding returns Vec<f64>
     let vec1 = get_embedding(text1).await;
     let vec2 = get_embedding(text2).await;
 
@@ -66,13 +65,18 @@ pub fn notify_slack(message: impl AsRef<str>) {
     std::thread::spawn({
         move || {
             use std::process::Command;
-
-            Command::new("curl")
-                .args(["-X", "POST"])
-                .args(["-H", "Content-type: application/json"])
-                .args(["--data", &serde_json::json!({ "text": message }).to_string()])
-                .arg("https://hooks.slack.com/services/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")
-                .spawn().unwrap();
+            
+            if let Some(webhook_url) = option_env!("SLACK_WEBHOOK") {
+                Command::new("curl")
+                    .args(["-X", "POST"])
+                    .args(["-H", "Content-type: application/json"])
+                    .args(["--data", &serde_json::json!({ "text": message }).to_string()])
+                    .arg(webhook_url)
+                    .spawn().unwrap();
+            } else {
+                tracing::warn!("SLACK_WEBHOOK is unset when compiling");
+                tracing::info!(info = "Slack Notification", message);        
+            }
         }
     });
 

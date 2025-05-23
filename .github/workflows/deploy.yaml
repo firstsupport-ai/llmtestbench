@@ -37,3 +37,4 @@ jobs:
       shell: bash
       env:
         DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
